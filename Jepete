@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Besteci Arşivi</title>
+    <style>
+        /* ======= GENEL TEMA ======= */
+        :root {
+            --bg: #0f1a0f; /* koyu yeşil ton */
+            --fg: #e4dfd0; /* açık metin */
+            --accent: #7a1c20; /* sanatsal kırmızı */
+            --card-bg: #182418;
+        }
+        body {
+            margin: 0;
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            display: flex;
+            height: 100vh;
+        }
+
+        /* ======= SOL MENÜ ======= */
+        #sidebar {
+            width: 260px;
+            background: #111b11;
+            padding: 16px;
+            border-right: 2px solid var(--accent);
+            overflow-y: auto;
+        }
+        #sidebar h2 { margin-top: 0; }
+        .composer-item {
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 6px;
+            background: #152115;
+            transition: 0.2s;
+        }
+        .composer-item:hover {
+            background: var(--accent);
+        }
+
+        /* ======= İÇERİK ALANI ======= */
+        #content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        #composer-image {
+            width: 180px;
+            border-radius: 10px;
+            border: 2px solid var(--accent);
+        }
+        #composer-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--accent);
+            max-width: 700px;
+        }
+
+        /* ======= YÖNETİCİ PANELİ ======= */
+        #admin-panel {
+            border-top: 2px solid var(--accent);
+            margin-top: 20px;
+            padding-top: 10px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            background: #0c140c;
+            color: var(--fg);
+        }
+        button {
+            padding: 10px 14px;
+            background: var(--accent);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ======= SOL LİSTE ======= -->
+    <div id="sidebar">
+        <h2>Besteciler</h2>
+        <div id="composer-list"></div>
+    </div>
+
+    <!-- ======= ANA İÇERİK ======= -->
+    <div id="content">
+        <h1>Besteci Arşivi</h1>
+        <p>Soldan bir besteci seç veya aşağıdan yeni bir besteci ekle.</p>
+
+        <!-- Besteci Kartı -->
+        <div id="composer-card" style="display:none;"></div>
+
+        <!-- Yönetici paneli (şifreli) -->
+        <div id="admin-panel">
+            <h2>Yeni Besteci Ekle</h2>
+            <input type="password" id="admin-pass" placeholder="Yönetici şifresi">
+            <input type="text" id="new-name" placeholder="Besteci adı">
+            <input type="text" id="new-image" placeholder="Görsel URL (zorunlu değil)">
+            <textarea id="new-note" rows="5" placeholder="Notlar"></textarea>
+            <button onclick="addComposer()">Ekle</button>
+        </div>
+    </div>
+
+
+    <script>
+        /* ============================================================
+           VERİ SİSTEMİ – JSON Tabanlı
+        ============================================================ */
+
+        let composers = [
+            {
+                name: "Georges Bizet",
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Georges_Bizet.jpg/440px-Georges_Bizet.jpg",
+                notes: "Carmen'in bestecisi. Kısa ömürlü bir dahi."
+            }
+        ];
+
+        function saveToLocalStorage() {
+            localStorage.setItem("composerData", JSON.stringify(composers));
+        }
+
+        function loadFromLocalStorage() {
+            const data = localStorage.getItem("composerData");
+            if (data) composers = JSON.parse(data);
+        }
+
+        loadFromLocalStorage();
+
+        /* ============================================================
+           LİSTEYİ YENİDEN ÇİZ
+        ============================================================ */
+
+        function renderList() {
+            const list = document.getElementById("composer-list");
+            list.innerHTML = "";
+            composers.forEach((c, index) => {
+                const item = document.createElement("div");
+                item.className = "composer-item";
+                item.innerText = c.name;
+                item.onclick = () => showComposer(index);
+                list.appendChild(item);
+            });
+        }
+        renderList();
+
+        /* ============================================================
+           BESTECİ KARTINI GÖSTER
+        ============================================================ */
+
+        function showComposer(i) {
+            const card = document.getElementById("composer-card");
+            const c = composers[i];
+            card.style.display = "block";
+            card.innerHTML = `
+                <h2>${c.name}</h2>
+                ${c.image ? `<img id='composer-image' src='${c.image}'/>` : ""}
+                <p style='white-space: pre-line; margin-top:15px;'>${c.notes}</p>
+            `;
+        }
+
+        /* ============================================================
+           YENİ BESTECİ EKLEME (Şifreli)
+        ============================================================ */
+
+        const ADMIN_PASSWORD = "ege123"; // İstediğin zaman değiştirebilirsin
+
+        function addComposer() {
+            const pass = document.getElementById("admin-pass").value;
+            if (pass !== ADMIN_PASSWORD) {
+                alert("Yanlış şifre.");
+                return;
+            }
+
+            const name = document.getElementById("new-name").value;
+            const img = document.getElementById("new-image").value;
+            const note = document.getElementById("new-note").value;
+
+            if (!name.trim()) {
+                alert("İsim boş olamaz.");
+                return;
+            }
+
+            composers.push({ name: name, image: img, notes: note });
+            saveToLocalStorage();
+            renderList();
+
+            document.getElementById("new-name").value = "";
+            document.getElementById("new-image").value = "";
+            document.getElementById("new-note").value = "";
+        }
+    </script>
+</body>
+</html>
+
